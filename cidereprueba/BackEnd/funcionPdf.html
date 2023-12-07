@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Extracción de Texto hasta Término Inicial</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.12.313/pdf.min.js"></script>
+</head>
+<body>
+  <h1>Extracción de Texto hasta Término Inicial</h1>
+
+  <form id="pdfForm" enctype="multipart/form-data">
+    <label for="pdfFile">Selecciona un archivo PDF:</label>
+    <input type="file" id="pdfFile" accept=".pdf" required>
+    <br>
+    <button type="button" onclick="extraerTexto()">Extraer Texto</button>
+  </form>
+
+  <div id="resultadoTexto">
+    <!-- Aquí se mostrará el resultado de la extracción de texto -->
+  </div>
+
+  <script>
+    async function extraerTexto() {
+      const inputElement = document.getElementById('pdfFile');
+      const file = inputElement.files[0];
+
+      if (file) {
+        const pdfData = await leerPDF(file);
+
+        const palabrasClave = {
+          'Domicilio': 'SERENA',
+          'Nombre del emisor:': '− 1',
+          'Actividades Económicas': 'P.'
+          // Agrega más palabras clave según sea necesario
+        };
+
+        let resultadoFinal = '';
+
+        for (const palabra in palabrasClave) {
+          const index = pdfData.indexOf(palabra);
+
+          if (index !== -1) {
+            const fin = pdfData.indexOf(palabrasClave[palabra], index);
+
+            if (fin !== -1) {
+              const textoExtraido = pdfData.substring(index, fin + palabrasClave[palabra].length);
+              resultadoFinal += `${palabrasClave[palabra]}: ${textoExtraido}\n\n`;
+            }
+          }
+        }
+
+        // Mostrar el resultado en el elemento con id 'resultadoTexto'
+        document.getElementById('resultadoTexto').innerText = resultadoFinal.trim();
+
+        // Emitir un evento personalizado para notificar que la extracción se ha completado
+        const eventoExtraccion = new Event('extraccionTextoCompleta');
+        document.dispatchEvent(eventoExtraccion);
+      } else {
+        alert('Por favor, selecciona un archivo PDF.');
+      }
+    }
+
+    async function leerPDF(file) {
+      const pdfData = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+
+        reader.onload = function (e) {
+          const arrayBuffer = e.target.result;
+          const typedArray = new Uint8Array(arrayBuffer);
+          resolve(typedArray);
+        };
+
+        reader.readAsArrayBuffer(file);
+      });
+
+      const pdfDoc = await pdfjsLib.getDocument(pdfData).promise;
+      const numPages = pdfDoc.numPages;
+      let textContent = '';
+
+      for (let pageNum = 1; pageNum <= numPages; pageNum++) {
+        const page = await pdfDoc.getPage(pageNum);
+        const pageText = await page.getTextContent();
+        const pageStrings = pageText.items.map(item => item.str);
+
+        // Agregar un salto de línea después de cada línea en el texto original
+        textContent += pageStrings.join('\n') + '\n';
+      }
+
+      return textContent;
+    }
+  </script>
+</body>
+</html>
+

@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Registro de Empresa</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.12.313/pdf.min.js"></script>
+</head>
+<body>
+  <h1>Registro de Empresa</h1>
+
+  <form id="pdfForm" enctype="multipart/form-data">
+    <label for="pdfFile">Selecciona un archivo PDF:</label>
+    <input type="file" id="pdfFile" accept=".pdf" required>
+    <br>
+    <button type="button" onclick="extraerYRellenar()">Extraer y Rellenar</button>
+  </form>
+
+  <form>
+    <fieldset>
+      <legend>Información de la empresa</legend>
+      <label for="rut">RUT:</label>
+      <input type="text" id="rut" name="rut" required><br><br>
+      <label for="email">Correo electrónico:</label>
+      <input type="email" id="email" name="email" required><br><br>
+      <label for="nombre_fantasia">Nombre de fantasía:</label>
+      <input type="text" id="nombre_fantasia" name="nombre_fantasia" required><br><br>
+      <label for="razon_social">Razón social:</label>
+      <input type="text" id="razon_social" name="razon_social" required><br><br>
+      <label for="region">Región:</label>
+      <input type="text" id="region" name="region" required><br><br>
+      <label for="provincia">Provincia:</label>
+      <input type="text" id="provincia" name="provincia" required><br><br>
+      <label for="comuna">Comuna:</label>
+      <input type="text" id="comuna" name="comuna" required><br><br>
+      <label for="direccion">Dirección:</label>
+      <input type="text" id="direccion" name="direccion" required><br><br>
+      <label for="tipo_empresa">Tipo de empresa:</label>
+      <select id="tipo_empresa" name="tipo_empresa" required>
+        <option value="">Seleccione una opción</option>
+        <option value="1">Empresa individual</option>
+        <option value="2">Sociedad anónima</option>
+        <option value="3">Sociedad de responsabilidad limitada</option>
+        <option value="4">Otro</option>
+      </select><br><br>
+      <label for="rubros">Rubros:</label>
+      <input type="text" id="rubros" name="rubros" required><br><br>
+      <label for="tamano_empresa">Tamaño de la empresa:</label>
+      <select id="tamano_empresa" name="tamano_empresa" required>
+        <option value="">Seleccione una opción</option>
+        <option value="1">Pequeña</option>
+        <option value="2">Mediana</option>
+        <option value="3">Grande</option>
+      </select><br><br>
+      <label for="descripcion">Descripción:</label>
+      <textarea id="descripcion" name="descripcion" rows="4" cols="50" required></textarea><br><br>
+      <label for="sitio_web">Sitio web:</label>
+      <input type="url" id="sitio_web" name="sitio_web" required><br><br>
+      <label for="contrasena">Contraseña:</label>
+      <input type="password" id="contrasena" name="contrasena" required><br><br>
+      <label for="repetir_contrasena">Repetir contraseña:</label>
+      <input type="password" id="repetir_contrasena" name="repetir_contrasena" required><br><br>
+    </fieldset>
+    <input type="submit" value="Registrarse">
+  </form>
+
+  <script>
+    async function extraerYRellenar() {
+      const inputElement = document.getElementById('pdfFile');
+      const file = inputElement.files[0];
+
+      if (file) {
+        const pdfData = await leerPDF(file);
+
+        document.getElementById('rut').value = extraerInformacion(pdfData, 'RUT');
+        document.getElementById('email').value = extraerInformacion(pdfData, 'Correo electrónico');
+        document.getElementById('nombre_fantasia').value = extraerInformacion(pdfData, 'Nombre de fantasía');
+        document.getElementById('razon_social').value = extraerInformacion(pdfData, 'Razón social');
+        document.getElementById('region').value = extraerInformacion(pdfData, 'Región');
+        document.getElementById('provincia').value = extraerInformacion(pdfData, 'Provincia');
+        document.getElementById('comuna').value = extraerInformacion(pdfData, 'Comuna');
+        document.getElementById('direccion').value = extraerInformacion(pdfData, 'Dirección');
+        document.getElementById('tipo_empresa').value = extraerInformacion(pdfData, 'Tipo de empresa');
+        document.getElementById('rubros').value = extraerInformacion(pdfData, 'Rubros');
+        document.getElementById('tamano_empresa').value = extraerInformacion(pdfData, 'Tamaño de la empresa');
+        document.getElementById('descripcion').value = extraerInformacion(pdfData, 'Descripción');
+        document.getElementById('sitio_web').value = extraerInformacion(pdfData, 'Sitio web');
+
+      } else {
+        alert('Por favor, selecciona un archivo PDF.');
+      }
+    }
+
+    async function leerPDF(file) {
+      const pdfData = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+
+        reader.onload = function (e) {
+          const arrayBuffer = e.target.result;
+          const typedArray = new Uint8Array(arrayBuffer);
+          resolve(typedArray);
+        };
+
+        reader.readAsArrayBuffer(file);
+      });
+
+      const pdfDoc = await pdfjsLib.getDocument(pdfData).promise;
+      const numPages = pdfDoc.numPages;
+      let textContent = '';
+
+      for (let pageNum = 1; pageNum <= numPages; pageNum++) {
+        const page = await pdfDoc.getPage(pageNum);
+        const pageText = await page.getTextContent();
+        const pageStrings = pageText.items.map(item => item.str);
+
+        // Agregar un salto de línea después de cada línea en el texto original
+        textContent += pageStrings.join('\n') + '\n';
+      }
+
+      return textContent;
+    }
+
+    function extraerInformacion(pdfData, campo) {
+      const regex = new RegExp(`${campo}\\s*\\|\\s*([^|]+)\\s*\\|`, 'i');
+      const match = pdfData.match(regex);
+
+      return match ? match[1].trim() : '';
+    }
+  </script>
+</body>
+</html>
